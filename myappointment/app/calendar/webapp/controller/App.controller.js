@@ -129,7 +129,7 @@ sap.ui.define([
                 });
                 oModel.submitBatch("headerGroup").then(
                     function () {
-                        sap.m.MessageBox.show("Success");
+                        sap.m.MessageBox.success("Successfully created.");
                         //debugger;
                         // This is a success handler
 
