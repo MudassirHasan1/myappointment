@@ -1,0 +1,1 @@
+using BookingService as service from '../../srv/service';
