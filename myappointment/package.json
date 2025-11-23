@@ -28,7 +28,8 @@
           "kind": "hana"
         },
         "auth": "xsuaa"
-      }
+      },
+      "html5-repo": true
     }
   },
   "private": true,
