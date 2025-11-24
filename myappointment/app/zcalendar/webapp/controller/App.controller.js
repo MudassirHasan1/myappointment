@@ -66,6 +66,7 @@ sap.ui.define([
                         const employeeAppointments = arrAppointments
                             .filter(appointment => appointment.employee_ID === employee.ID)
                             .map(appointment => ({
+                                ID:appointment.ID,
                                 title: appointment.title,
                                 info: appointment.info,
                                 start: new Date(appointment.start),
@@ -211,7 +212,7 @@ sap.ui.define([
                 this.updateButtonEnabledState(this.byId("createDialog"));
             },
 
-            _removeAppointment: function (oAppointment, sPersonId) {
+            _removeAppointment: async function (oAppointment, sPersonId) {
                 var oModel = this.getView().getModel(),
                     sTempPath,
                     aPersonAppointments,
@@ -231,6 +232,27 @@ sap.ui.define([
                 }
 
                 oModel.setProperty(sTempPath, aPersonAppointments);
+
+                
+                let appointMentID = oAppointment.ID;
+                //let oBindList = oModel.bindList("/Appointments");
+
+                let aFilter = new sap.ui.model.Filter("ID", sap.ui.model.FilterOperator.EQ, appointMentID);
+
+                var oViewModel = this.getOwnerComponent().getModel();
+
+                var oListBinding = oViewModel.bindList("/Appointments", undefined, [], aFilter, {
+                    $$ownRequest: true
+                });
+
+
+                await oListBinding.requestContexts(0, 100).then(function (aContexts) {
+                    aContexts[0].delete();
+
+                });
+
+                this.bindCalendar();
+
             },
 
             handleDeleteAppointment: function () {
