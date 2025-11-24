@@ -17,6 +17,11 @@ sap.ui.define([
         return Controller.extend("zcalendar.controller.App", {
 
             onInit: async function () {
+                this.bindCalendar();
+                
+            },
+
+            bindCalendar:async function(){
                 var oModel = new JSONModel();
                 
 
@@ -52,10 +57,10 @@ sap.ui.define([
 
                 console.log(arrAppointments);
                 console.log(arrEmployees);
+                var today = new Date();
 
                 const result = {
-                    
-                    startDate: UI5Date.getInstance("2025", "0", "23", "11", "0"),
+                    startDate: UI5Date.getInstance(today.getFullYear(), "0", today.getDate(), today.getMonth() + 1, "0"),
                     people: arrEmployees.map(employee => {
                         // Find appointments for this employee
                         const employeeAppointments = arrAppointments
@@ -79,6 +84,7 @@ sap.ui.define([
                 oModel.setData(result);
 
                 this.getView().setModel(oModel);
+
             },
 
             _aDialogTypes: [
@@ -127,9 +133,11 @@ sap.ui.define([
                     // Create a new entity for each object
                     oListBinding.create(oObject);
                 });
+                var that = this;
                 oModel.submitBatch("headerGroup").then(
                     function () {
-                        sap.m.MessageBox.success("Successfully created.");
+                        //sap.m.MessageBox.success("Successfully created.");
+                        that.bindCalendar();
                         //debugger;
                         // This is a success handler
 
@@ -359,7 +367,7 @@ sap.ui.define([
                         this._addNewAppointment(oNewAppointment);
                     }
 
-                    oModel.updateBindings();
+                    // oModel.updateBindings();
 
                     oNewAppointmentDialog.close();
                 }
