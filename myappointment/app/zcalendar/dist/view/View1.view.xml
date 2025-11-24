@@ -1,0 +1,6 @@
+<mvc:View controllerName="zcalendar.controller.View1"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m">
+    <Page id="page" title="Custom Calendar View">
+    </Page>
+</mvc:View>

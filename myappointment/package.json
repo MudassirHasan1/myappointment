@@ -11,11 +11,16 @@
   "devDependencies": {
     "@cap-js/sqlite": "^2.0.4",
     "@sap/cds-dk": "^9",
-    "cds-plugin-ui5": "^0.13.0"
+    "rimraf": "^5.0.5",
+    "mbt": "^1.2.29"
   },
   "scripts": {
     "start": "cds-serve",
-    "watch-calendar": "cds watch --open calendar/index.html?sap-ui-xx-viewCache=false --livereload false"
+    "watch-calendar": "cds watch --open calendar/index.html?sap-ui-xx-viewCache=false --livereload false",
+    "watch-zcalendar": "cds watch --open zcalendar/index.html?sap-ui-xx-viewCache=false --livereload false",
+    "undeploy": "cf undeploy myappointment --delete-services --delete-service-keys --delete-service-brokers",
+    "build": "rimraf resources mta_archives && mbt build --mtar archive",
+    "deploy": "cf deploy mta_archives/archive.mtar --retries 1"
   },
   "cds": {
     "requires": {

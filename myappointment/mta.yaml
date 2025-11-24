@@ -1,121 +1,201 @@
 _schema-version: 3.3.0
 ID: myappointment
+description: A simple CAP project.
 version: 1.0.0
-description: "A simple CAP project."
-parameters:
-  enable-parallel-deployments: true
-  deploy_mode: html5-repo
-build-parameters:
-  before-all:
-    - builder: custom
-      commands:
-        - npm ci
-        - npx cds build --production
+
 modules:
+  # ----------------------------------------------------------------------------
+  # SRV MODULE
+  # ----------------------------------------------------------------------------
   - name: myappointment-srv
     type: nodejs
     path: gen/srv
-    parameters:
-      instances: 1
-      buildpack: nodejs_buildpack
-    build-parameters:
-      builder: npm-ci
+    requires:
+      - name: myappointment-db
+      - name: myappointment-auth
+      - name: myappointment-destination-service
     provides:
-      - name: srv-api # required by consumers of CAP services (e.g. approuter)
+      - name: srv-api
         properties:
           srv-url: ${default-url}
-    requires:
-      - name: myappointment-auth
-      - name: myappointment-db
+    parameters:
+      buildpack: nodejs_buildpack
+      readiness-health-check-http-endpoint: /health
+      readiness-health-check-type: http
+    build-parameters:
+      builder: npm
 
+  # ----------------------------------------------------------------------------
+  # DB DEPLOYER
+  # ----------------------------------------------------------------------------
   - name: myappointment-db-deployer
     type: hdb
     path: gen/db
-    parameters:
-      buildpack: nodejs_buildpack
     requires:
       - name: myappointment-db
-  - name: myappointment
-    type: approuter.nodejs
-    path: app/router
     parameters:
-      keep-existing-routes: true
-      disk-quota: 256M
-      memory: 256M
-    requires:
-      - name: srv-api
-        group: destinations
-        properties:
-          name: srv-api # must be used in xs-app.json as well
-          url: ~{srv-url}
-          forwardAuthToken: true
-      - name: myappointment-auth
-      - name: myappointment-html5-runtime
-    provides:
-      - name: app-api
-        properties:
-          app-protocol: ${protocol}
-          app-uri: ${default-uri}
+      buildpack: nodejs_buildpack
 
-  - name: myappointment-app-deployer
+  # ----------------------------------------------------------------------------
+  # HTML5 APP CONTENT DEPLOYER
+  # ----------------------------------------------------------------------------
+  - name: myappointment-app-content
     type: com.sap.application.content
-    path: gen
+    path: .
     requires:
-      - name: myappointment-auth
-      - name: srv-api
-      - name: myappointment-html5-repo-host
+      - name: myappointment-repo-host
         parameters:
           content-target: true
-          config:
-            HTML5Runtime_enabled: true
     build-parameters:
-      build-result: app/
+      build-result: resources
       requires:
-        - name: myappointmentcalendar
-          artifacts:
-            - calendar.zip
-          target-path: app/
+        - artifacts:
+            - zcalendar.zip
+          name: zcalendar
+          target-path: resources/
 
-  - name: myappointmentcalendar
+  # ----------------------------------------------------------------------------
+  # DESTINATION-CONTENT MODULE
+  # ----------------------------------------------------------------------------
+  - name: myappointment-destination-content
+    type: com.sap.application.content
+    requires:
+      - name: myappointment-destination-service
+        parameters:
+          content-target: true
+      - name: myappointment-repo-host
+        parameters:
+          service-key:
+            name: myappointment-repo-host-key
+      - name: myappointment-auth
+        parameters:
+          service-key:
+            name: myappointment-auth-key
+    parameters:
+      content:
+        instance:
+          destinations:
+            - Name: myappointment_myappointment_html_repo_host
+              ServiceInstanceName: myappointment-html5-service
+              ServiceKeyName: myappointment-repo-host-key
+              sap.cloud.service: myappointment
+
+            - Authentication: OAuth2UserTokenExchange
+              Name: myappointment_myappointment_auth
+              ServiceInstanceName: myappointment-xsuaa-srv
+              ServiceKeyName: myappointment-auth-key
+              sap.cloud.service: myappointment
+
+          existing_destinations_policy: ignore
+    build-parameters:
+      no-source: true
+
+  # ----------------------------------------------------------------------------
+  # HTML5 UI MODULE
+  # ----------------------------------------------------------------------------
+  - name: zcalendar
     type: html5
-    path: app/calendar
+    path: app/zcalendar
     build-parameters:
       build-result: dist
       builder: custom
       commands:
-        - npm ci
-        - npm run build
-      supported-platforms:
-        []
+        - npm install
+        - npm run build:cf
+      supported-platforms: []
 
 resources:
-  - name: myappointment-auth
-    type: org.cloudfoundry.managed-service
-    parameters:
-      service: xsuaa
-      service-plan: application
-      path: ./xs-security.json
-      config:
-        xsappname: myappointment-xsuaa
-        tenant-mode: dedicated
-        oauth2-configuration:
-          redirect-uris:
-            - https://*~{app-api/app-uri}/**
-    requires:
-      - name: app-api
+  # ----------------------------------------------------------------------------
+  # HDI CONTAINER
+  # ----------------------------------------------------------------------------
   - name: myappointment-db
     type: com.sap.xs.hdi-container
     parameters:
       service: hana
       service-plan: hdi-shared
 
-  - name: myappointment-html5-repo-host
+  # ----------------------------------------------------------------------------
+  # HTML5 APPS REPO HOST
+  # ----------------------------------------------------------------------------
+  - name: myappointment-repo-host
     type: org.cloudfoundry.managed-service
     parameters:
       service: html5-apps-repo
+      service-name: myappointment-html5-service
       service-plan: app-host
-  - name: myappointment-html5-runtime
+
+  # ----------------------------------------------------------------------------
+  # DESTINATION SERVICE
+  # ----------------------------------------------------------------------------
+  - name: myappointment-destination-service
     type: org.cloudfoundry.managed-service
     parameters:
-      service: html5-apps-repo
-      service-plan: app-runtime
+      config:
+        HTML5Runtime_enabled: true   # REQUIRED for HTML5 app visibility
+        init_data:
+          instance:
+            destinations:
+              - Authentication: NoAuthentication
+                Name: ui5
+                ProxyType: Internet
+                Type: HTTP
+                URL: https://ui5.sap.com
+
+              - Authentication: NoAuthentication
+                HTML5.DynamicDestination: true
+                HTML5.ForwardAuthToken: true
+                Name: myappointment-srv-api
+                ProxyType: Internet
+                Type: HTTP
+                URL: ~{srv-api/srv-url}
+
+              - Authentication: NoAuthentication
+                HTML5.DynamicDestination: true
+                HTML5.ForwardAuthToken: true
+                Name: srv-api
+                ProxyType: Internet
+                Type: HTTP
+                URL: ~{srv-api/srv-url}
+
+            existing_destinations_policy: update
+        version: 1.0.0
+      service: destination
+      service-name: myappointment-destination-service
+      service-plan: lite
+    requires:
+      - name: srv-api
+
+  # ----------------------------------------------------------------------------
+  # XSUAA AUTH SERVICE
+  # ----------------------------------------------------------------------------
+  - name: myappointment-auth
+    type: org.cloudfoundry.managed-service
+    parameters:
+      config:
+        tenant-mode: dedicated
+        xsappname: myappointment-xsuaa
+      path: ./xs-security.json
+      service: xsuaa
+      service-name: myappointment-xsuaa-srv
+      service-plan: application
+
+  # ----------------------------------------------------------------------------
+  # APPLICATION LOGS
+  # ----------------------------------------------------------------------------
+  - name: myappointment-application-logs
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: application-logs
+      service-name: myappointment-application-logs
+      service-plan: lite
+
+parameters:
+  deploy_mode: html5-repo
+  enable-parallel-deployments: true
+
+build-parameters:
+  before-all:
+    - builder: custom
+      commands:
+        - npm ci
+        - npx cds build --production
