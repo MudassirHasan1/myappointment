@@ -18,12 +18,12 @@ sap.ui.define([
 
             onInit: async function () {
                 this.bindCalendar();
-                
+
             },
 
-            bindCalendar:async function(){
+            bindCalendar: async function () {
                 var oModel = new JSONModel();
-                
+
 
                 var oViewModel = this.getOwnerComponent().getModel();
 
@@ -60,13 +60,13 @@ sap.ui.define([
                 var today = new Date();
 
                 const result = {
-                    startDate: UI5Date.getInstance(today.getFullYear(), "0", today.getDate(), today.getMonth() + 1, "0"),
+                    startDate: UI5Date.getInstance(today.getFullYear(),today.getMonth() , today.getDate()),
                     people: arrEmployees.map(employee => {
                         // Find appointments for this employee
                         const employeeAppointments = arrAppointments
                             .filter(appointment => appointment.employee_ID === employee.ID)
                             .map(appointment => ({
-                                ID:appointment.ID,
+                                ID: appointment.ID,
                                 title: appointment.title,
                                 info: appointment.info,
                                 start: new Date(appointment.start),
@@ -233,7 +233,7 @@ sap.ui.define([
 
                 oModel.setProperty(sTempPath, aPersonAppointments);
 
-                
+
                 let appointMentID = oAppointment.ID;
                 //let oBindList = oModel.bindList("/Appointments");
 
@@ -323,7 +323,7 @@ sap.ui.define([
                 this.byId("createDialog").close();
             },
 
-            _editAppointment: function (oAppointment, bIsIntervalAppointment, iPersonId, oNewAppointmentDialog) {
+            _editAppointment: async function (oAppointment, bIsIntervalAppointment, iPersonId, oNewAppointmentDialog) {
                 var sAppointmentPath = this._appointmentOwnerChange(oNewAppointmentDialog),
                     oModel = this.getView().getModel();
 
@@ -334,12 +334,39 @@ sap.ui.define([
                         this._addNewAppointment(oNewAppointmentDialog.getModel().getProperty(this.sPath));
                         this._removeAppointment(oNewAppointmentDialog.getModel().getProperty(this.sPath));
                     }
-                    oModel.setProperty(sAppointmentPath + "/title", oAppointment.title);
-                    oModel.setProperty(sAppointmentPath + "/info", oAppointment.info);
-                    oModel.setProperty(sAppointmentPath + "/type", oAppointment.type);
-                    oModel.setProperty(sAppointmentPath + "/start", oAppointment.start);
-                    oModel.setProperty(sAppointmentPath + "/end", oAppointment.end);
+                    // oModel.setProperty(sAppointmentPath + "/title", oAppointment.title);
+                    // oModel.setProperty(sAppointmentPath + "/info", oAppointment.info);
+                    // oModel.setProperty(sAppointmentPath + "/type", oAppointment.type);
+                    // oModel.setProperty(sAppointmentPath + "/start", oAppointment.start);
+                    // oModel.setProperty(sAppointmentPath + "/end", oAppointment.end);
+
+                    let appointMentID = this._AppointMentID;
+                    //let oBindList = oModel.bindList("/Appointments");
+
+                    let aFilter = new sap.ui.model.Filter("ID", sap.ui.model.FilterOperator.EQ, appointMentID);
+
+                    var oViewModel = this.getOwnerComponent().getModel();
+
+                    var oListBinding = oViewModel.bindList("/Appointments", undefined, [], aFilter, {
+                        $$ownRequest: true
+                    });
+
+
+                    await oListBinding.requestContexts(0, 100).then(function (aContexts) {
+                    aContexts[0].setProperty("info", oAppointment.info);
+                    aContexts[0].setProperty("title", oAppointment.title);
+                    aContexts[0].setProperty("start", (oAppointment.start).toISOString());
+                    aContexts[0].setProperty("end", (oAppointment.end).toISOString());
+
+
+                    });
+
+                    this.bindCalendar();
+
+
+
                 }
+
             },
 
             _convertToHeader: function (oAppointment, oNewAppointmentDialog) {
@@ -482,6 +509,7 @@ sap.ui.define([
                     oAppointmentType = this.byId("isIntervalAppointment");
 
                 oPersonSelected.setSelectedIndex(iSelectedPersonId);
+                this._AppointMentID = oAppointment.ID;
 
                 oStartDate.setDateValue(oSelectedIntervalStart);
 
