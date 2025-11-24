@@ -179,15 +179,7 @@ resources:
       service-name: myappointment-xsuaa-srv
       service-plan: application
 
-  # ----------------------------------------------------------------------------
-  # APPLICATION LOGS
-  # ----------------------------------------------------------------------------
-  - name: myappointment-application-logs
-    type: org.cloudfoundry.managed-service
-    parameters:
-      service: application-logs
-      service-name: myappointment-application-logs
-      service-plan: lite
+
 
 parameters:
   deploy_mode: html5-repo

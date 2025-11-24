@@ -250,7 +250,7 @@ sap.ui.define([
                 if (!this._pNewAppointmentDialog) {
                     this._pNewAppointmentDialog = Fragment.load({
                         id: oView.getId(),
-                        name: "calendar.view.fragment.Create",
+                        name: "zcalendar.view.fragment.Create",
                         controller: this
                     }).then(function (oDialog) {
                         oView.addDependent(oDialog);
@@ -483,7 +483,7 @@ sap.ui.define([
                 if (!this._pDetailsPopover) {
                     this._pDetailsPopover = Fragment.load({
                         id: oView.getId(),
-                        name: "calendar.view.fragment.Details",
+                        name: "zcalendar.view.fragment.Details",
                         controller: this
                     }).then(function (oDetailsPopover) {
                         oView.addDependent(oDetailsPopover);
