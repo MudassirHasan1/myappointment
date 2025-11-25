@@ -106,17 +106,17 @@
       },
       "routes": [
         {
-          "name": "RouteView1",
+          "name": "RouteApp",
           "pattern": ":?query:",
           "target": [
-            "TargetView1"
+            "TargetApp"
           ]
         }
       ],
       "targets": {
-        "TargetView1": {
-          "id": "View1",
-          "name": "View1"
+        "TargetApp": {
+          "id": "App",
+          "name": "App"
         }
       }
     },
